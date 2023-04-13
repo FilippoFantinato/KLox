@@ -1,7 +1,10 @@
 package lexer
 
+import exceptions.Errors
+import java.util.LinkedList
+
 class Scanner(private val source: String) {
-    private val tokens: MutableList<Token> = ArrayList()
+    private val tokens: MutableList<Token> = LinkedList()
     private var start: Int = 0
     private var current: Int = 0
     private var line: Int = 1
@@ -25,11 +28,14 @@ class Scanner(private val source: String) {
         "while" to TokenType.WHILE
     )
 
-    fun scanTokens(): MutableList<Token> {
-        while (!isAtEnd()) {
+    fun scanTokens(): MutableList<Token>? {
+        var notError = true
+        while (notError && !isAtEnd()) {
             start = current
-            scanToken()
+            notError = scanToken()
         }
+
+        if(!notError) return null
 
         tokens.add(Token(TokenType.EOF, "", null, line))
 
@@ -40,8 +46,7 @@ class Scanner(private val source: String) {
         return current >= source.length
     }
 
-    private fun scanToken() {
-        when(val c = advance()) {
+    private fun scanToken(): Boolean = when(val c = advance()) {
             '(' -> addToken(TokenType.LEFT_PAREN)
             ')' -> addToken(TokenType.RIGHT_PAREN)
             '{' -> addToken(TokenType.LEFT_BRACE)
@@ -57,37 +62,48 @@ class Scanner(private val source: String) {
             '<' -> addToken(if(match('=')) TokenType.LESS_EQUAL else TokenType.LESS)
             '>' -> addToken(if(match('=')) TokenType.GREATER_EQUAL else TokenType.GREATER)
             '/' -> {
-                if(match('/')) {
-                    while(peek() != '\n' && !isAtEnd()) advance()
-                } else {
-                    addToken(TokenType.SLASH)
+                when {
+                    match('/') -> {
+                        while(peek() != '\n' && !isAtEnd()) advance()
+                        true
+                    }
+                    match('*') -> {
+                        while(!(peek() == '*' || peekNext() == '\\') && !isAtEnd()) advance()
+                        true
+                    }
+                    else -> addToken(TokenType.SLASH)
                 }
             }
             '"' -> string()
-            '\n' -> ++line
-            ' ', '\r', '\t'-> {}
+            '\n' -> {
+                ++line
+                true
+            }
+            ' ', '\r', '\t'-> true
             else -> {
                 when{
                     c.isDigit() -> number()
                     c.isLetter() -> identifier()
-                    else -> Lox.error(line, "Unexpected character.")
+                    else -> {
+                        Errors.error(line, "Unexpected character.")
+                        false
+                    }
                 }
             }
         }
-    }
 
     private fun advance(): Char {
         return source[current++]
     }
 
-    private fun addToken(type: TokenType, literal: Any? = null) {
+    private fun addToken(type: TokenType, literal: Any? = null): Boolean {
         val text = source.substring(start, current)
         tokens.add(Token(type, text, literal, line))
+        return true
     }
 
     private fun match(expected: Char): Boolean {
-        if (isAtEnd()) return false
-        if (source[current] != expected) return false
+        if (isAtEnd() || source[current] != expected) return false
         ++current
         return true
     }
@@ -102,23 +118,24 @@ class Scanner(private val source: String) {
         return source[current + 1]
     }
 
-    private fun string() {
+    private fun string(): Boolean {
         while(peek() != '"' && !isAtEnd()) {
             if(peek() == '\n') line++
             advance()
         }
 
         if(isAtEnd()) {
-            Lox.error(line, "Unterminated string.")
+            Errors.error(line, "Unterminated string.")
+            return false
         }
 
         advance()
 
         val value = source.substring(start + 1, current - 1)
-        addToken(TokenType.STRING, value)
+        return addToken(TokenType.STRING, value)
     }
 
-    private fun number() {
+    private fun number(): Boolean {
         while(peek().isDigit()) advance()
 
         if(peek() == '.' && peekNext().isDigit()) {
@@ -127,14 +144,14 @@ class Scanner(private val source: String) {
             while(peek().isDigit()) advance()
         }
 
-        addToken(TokenType.NUMBER, source.substring(start, current).toDouble())
+        return addToken(TokenType.NUMBER, source.substring(start, current).toDouble())
     }
 
-    private fun identifier() {
+    private fun identifier(): Boolean {
         while(peek().isLetterOrDigit()) advance()
 
         val text = source.substring(start, current)
         val type = keywords[text] ?: TokenType.IDENTIFIER
-        addToken(type)
+        return addToken(type)
     }
 }

@@ -1,5 +1,7 @@
+import ast.prettyAST
 import lexer.Scanner
 import lexer.Token
+import parser.Parser
 import java.io.File
 
 fun runREPL() {
@@ -19,27 +21,22 @@ fun usage() {
     print("Usage: ")
 }
 
-private fun run(source: String) {
+fun run(source: String) {
     val scanner = Scanner(source)
-    val tokens: MutableList<Token> = scanner.scanTokens()
+    val tokens: MutableList<Token> = scanner.scanTokens() ?: return
 
     tokens.forEach { token -> println(token) }
+
+    val parser = Parser(tokens)
+    val expression = parser.parse() ?: return
+
+    println(prettyAST(expression))
 }
 
 fun main(args: Array<String>) {
-    if(args.isEmpty())
-    {
-        runREPL()
-    }
-    else
-    {
-        if(args.size == 1)
-        {
-            runFile(args[0])
-        }
-        else
-        {
-            usage()
-        }
+    when(args.size){
+        0 -> runREPL()
+        1 -> runFile(args[0])
+        else -> usage()
     }
 }
