@@ -8,7 +8,7 @@ fun runREPL() {
     while(true)
     {
         print("> ")
-        val input = readLine()!!
+        val input = readln()
         run(input)
     }
 }

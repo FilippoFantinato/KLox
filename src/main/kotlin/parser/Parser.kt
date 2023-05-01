@@ -45,7 +45,7 @@ class Parser(private val tokens: List<Token>)
     private fun equality(): Expression {
         var expr = comparison()
 
-        while(match(listOf(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL)))
+        while(match(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))
         {
             val operator = previous()
             val right = comparison()
@@ -59,7 +59,7 @@ class Parser(private val tokens: List<Token>)
     private fun comparison(): Expression {
         var expr: Expression = term()
 
-        while (match(listOf(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL))) {
+        while (match(TokenType.GREATER, TokenType.GREATER_EQUAL, TokenType.LESS, TokenType.LESS_EQUAL)) {
             val operator = previous()
             val right: Expression = term()
             expr = Binary(expr, operator, right)
@@ -71,7 +71,7 @@ class Parser(private val tokens: List<Token>)
     private fun term(): Expression {
         var expr = factor()
 
-        while (match(listOf(TokenType.MINUS, TokenType.PLUS))) {
+        while (match(TokenType.MINUS, TokenType.PLUS)) {
             val operator = previous()
             val right = factor()
             expr = Binary(expr, operator, right)
@@ -83,7 +83,7 @@ class Parser(private val tokens: List<Token>)
     private fun factor(): Expression {
         var expr = unary()
 
-        while(match(listOf(TokenType.SLASH, TokenType.STAR))) {
+        while(match(TokenType.SLASH, TokenType.STAR)) {
             val operator = previous()
             val right = unary()
             expr = Binary(expr, operator, right)
@@ -94,19 +94,19 @@ class Parser(private val tokens: List<Token>)
 
     // unary -> ( "!" | "-" ) unary | primary ;
     private fun unary(): Expression {
-        return if(match(listOf(TokenType.BANG, TokenType.MINUS)))
+        return if(match(TokenType.BANG, TokenType.MINUS))
             Unary(previous(), unary())
         else
             primary()
     }
 
     private fun primary(): Expression {
-        if(match(listOf(TokenType.FALSE))) return Literal(false)
-        if(match(listOf(TokenType.TRUE))) return Literal(true)
-        if(match(listOf(TokenType.NIL))) return Literal(null)
-        if(match(listOf(TokenType.NUMBER, TokenType.STRING))) return Literal(previous().literal)
+        if(match(TokenType.FALSE)) return Literal(false)
+        if(match(TokenType.TRUE)) return Literal(true)
+        if(match(TokenType.NIL)) return Literal(null)
+        if(match(TokenType.NUMBER, TokenType.STRING)) return Literal(previous().literal)
 
-        if(match(listOf(TokenType.LEFT_PAREN))){
+        if(match(TokenType.LEFT_PAREN)){
             val expr = expression()
             consume(TokenType.RIGHT_PAREN, "Expect ')' after expression.")
             return Grouping(expr)
@@ -126,7 +126,7 @@ class Parser(private val tokens: List<Token>)
         return ParseError()
     }
 
-    private fun match(types: List<TokenType>): Boolean {
+    private fun match(vararg types: TokenType): Boolean {
         return types.any { type ->
             val checked = check(type)
             if(checked) advance()

@@ -14,6 +14,9 @@ repositories {
 
 dependencies {
     testImplementation(kotlin("test"))
+    implementation("io.arrow-kt:arrow-core:1.2.0-RC")
+    implementation("io.arrow-kt:arrow-fx-coroutines:1.2.0-RC")
+    implementation(kotlin("stdlib-jdk8"))
 }
 
 tasks.test {
@@ -26,4 +29,7 @@ tasks.withType<KotlinCompile> {
 
 application {
     mainClass.set("MainKt")
+}
+kotlin {
+    jvmToolchain(11)
 }

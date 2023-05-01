@@ -1,5 +1,8 @@
 package lexer
 
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.raise.either
 import exceptions.Errors
 import java.util.LinkedList
 
@@ -96,7 +99,7 @@ class Scanner(private val source: String) {
         return source[current++]
     }
 
-    private fun addToken(type: TokenType, literal: Any? = null): Boolean {
+    private fun addToken(type: TokenType, literal: LiteralValue? = null): Boolean {
         val text = source.substring(start, current)
         tokens.add(Token(type, text, literal, line))
         return true
@@ -144,7 +147,10 @@ class Scanner(private val source: String) {
             while(peek().isDigit()) advance()
         }
 
-        return addToken(TokenType.NUMBER, source.substring(start, current).toDouble())
+        return addToken(
+            TokenType.NUMBER,
+            source.substring(start, current).toDouble()
+        )
     }
 
     private fun identifier(): Boolean {
