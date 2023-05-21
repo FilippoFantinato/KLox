@@ -1,4 +1,4 @@
-import ast.prettyAST
+import interpreter.intepret
 import lexer.Scanner
 import lexer.Token
 import parser.Parser
@@ -25,12 +25,14 @@ fun run(source: String) {
     val scanner = Scanner(source)
     val tokens: MutableList<Token> = scanner.scanTokens() ?: return
 
-    tokens.forEach { token -> println(token) }
+//    tokens.forEach { token -> println(token) }
 
     val parser = Parser(tokens)
-    val expression = parser.parse() ?: return
+    val statements = parser.parse()
 
-    println(prettyAST(expression))
+//    val prg = prettyProgram(statements)
+
+    intepret(statements)
 }
 
 fun main(args: Array<String>) {
