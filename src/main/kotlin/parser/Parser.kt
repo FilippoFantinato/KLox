@@ -11,29 +11,18 @@ class Parser(private val tokens: List<Token>)
 {
     private var current = 0
 
-    fun parse(): List<Declaration?> {
-        val program = mutableListOf<Declaration?>()
-
+    fun parse() : List<Declaration> {
+        val program = mutableListOf<Declaration>()
         while(!isAtEnd()) program.add(declaration())
-
         return program
     }
 
-    private fun declaration(): Declaration? {
-        return try {
-            when {
-                match(TokenType.VAR) ->
-                    varDeclaration()
-                else ->
-                    statement()
-            }
-        } catch (error: ParseError) {
-            synchronize()
-            null
-        }
+    private fun declaration() = when {
+        match(TokenType.VAR) -> varDeclaration()
+        else -> statement()
     }
 
-    private fun varDeclaration(): VarDeclaration {
+    private fun varDeclaration() : Declaration {
         val name = consume(TokenType.IDENTIFIER, "Expect variable name")
         val initializer = if(match(TokenType.EQUAL)) expression() else null
 
@@ -42,40 +31,13 @@ class Parser(private val tokens: List<Token>)
         return VarDeclaration(name, initializer)
     }
 
-    private fun statement() = when {
-        match(TokenType.PRINT) ->
-            printStatement()
-        match(TokenType.LEFT_BRACE) ->
-            Block(blockStatement())
-        match(TokenType.IF) ->
-            ifStatement()
-        match(TokenType.WHILE) ->
-            whileStatement()
-        match(TokenType.FOR) ->
-            forLoopStatement()
+    private fun statement(): Statement = when {
+        match(TokenType.IF)         -> ifStatement()
+        match(TokenType.FOR)        -> forLoopStatement()
+        match(TokenType.WHILE)      -> whileStatement()
+        match(TokenType.PRINT)      -> printStatement()
+        match(TokenType.LEFT_BRACE) -> Block(blockStatement())
         else -> expressionStatement()
-    }
-
-    private fun synchronize() {
-        advance()
-
-        while(!isAtEnd()) {
-            if(previous().type == TokenType.SEMICOLON) return
-
-            when(peek().type) {
-                TokenType.CLASS     -> { }
-                TokenType.FUN       -> { }
-                TokenType.VAR       -> { }
-                TokenType.FOR       -> { }
-                TokenType.IF        -> { }
-                TokenType.WHILE     -> { }
-                TokenType.PRINT     -> { }
-                TokenType.RETURN    -> { }
-                else -> { }
-            }
-        }
-
-        advance()
     }
 
     private fun printStatement() : Statement {
@@ -89,7 +51,7 @@ class Parser(private val tokens: List<Token>)
 
         while(!isAtEnd() && !check(TokenType.RIGHT_BRACE))
         {
-            declarations.add(declaration()!!)
+            declarations.add(declaration())
         }
 
         consume(TokenType.RIGHT_BRACE, "Expect '}' after block")
@@ -120,29 +82,24 @@ class Parser(private val tokens: List<Token>)
         consume(TokenType.LEFT_PAREN, "Expect '(' after 'for'.")
 
         val initializer = when {
-            match(TokenType.SEMICOLON) -> null
             match(TokenType.VAR) -> varDeclaration()
+            match(TokenType.SEMICOLON) -> null
             else -> expressionStatement()
         }
-        var condition = if(!check(TokenType.SEMICOLON)) expression() else null
-        var increment = if(!check(TokenType.RIGHT_PAREN)) expression() else null
+        val condition = if(!check(TokenType.SEMICOLON)) expression() else Literal(true)
+
+        consume(TokenType.SEMICOLON, "Expect ';' after loop condition.")
+
+        val increment = if(!check(TokenType.RIGHT_PAREN)) expression() else null
 
         consume(TokenType.RIGHT_PAREN, "Expect ')' after 'for'.")
 
-        var body = statement()
-
-        if(increment != null) {
-            body = Block(listOf(body, increment))
-        }
-
-        if(condition == null) {
-            condition = Literal(true)
-        }
-
-        body = While(condition, body)
-
-        if(initializer != null) {
-            body = Block(listOf(initializer, body))
+        val body = statement() . let { body ->
+            (increment ?. let { inc -> Block(listOf(body, inc)) } ?: body) . let { body ->
+                While(condition, body) . let { body ->
+                    initializer ?. let {Block(listOf(initializer, body))} ?: body
+                }
+            }
         }
 
         return body

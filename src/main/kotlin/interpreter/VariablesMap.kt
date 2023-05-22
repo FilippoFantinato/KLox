@@ -5,9 +5,12 @@ import exceptions.VariableAlreadyDeclared
 
 class VariablesMap() : HashMap<String, Boolean>(mutableMapOf())
 {
+    constructor(env: Environment) : this() {
+        env.forEach { (k, _) -> checkFor(k) }
+    }
+
     fun checkFor(key: String) {
-        val v = super.getOrDefault(key, false)
-        when(v) {
+        when(super.getOrDefault(key, false)) {
             true -> throw VariableAlreadyDeclared(key)
             false -> super.put(key, true)
         }

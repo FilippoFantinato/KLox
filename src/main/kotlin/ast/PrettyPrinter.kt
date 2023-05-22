@@ -4,17 +4,12 @@ import lexer.Token
 
 fun prettyProgram(prg: List<Declaration?>) : String =
     prg.fold("") { acc, decl ->
-        when(decl) {
-            null -> ""
-            else -> acc + prettyDeclaration(decl) + "\n"
-        }
+        decl?. let { acc + prettyDeclaration(it) + "\n" } ?: ""
     }
 
 private fun prettyDeclaration(decl: Declaration) : String = when(decl) {
     is VarDeclaration -> "var ${prettyToken(decl.name)}" +
-            if(decl.init != null)
-                " = ${prettyExpression(decl.init)};"
-            else ";"
+            (decl.init?.let { " = ${prettyExpression(it)};" } ?: ";")
     is Statement -> prettyStatement(decl)
 }
 
@@ -27,9 +22,7 @@ fun prettyStatement(stmt: Statement) : String {
         is IfThenElse ->
             "if(${prettyExpression(stmt.cond)})\n" +
             "then \n ${prettyStatement(stmt.thenBranch)}" +
-            if(stmt.elseBranch != null)
-                "\nelse \n ${prettyStatement(stmt.elseBranch)}"
-            else ""
+            (stmt.elseBranch?. let {"\nelse \n ${prettyStatement(stmt.elseBranch)}"} ?: "")
         is While ->
             "while(${prettyExpression(stmt.cond)})\n" +
             prettyStatement(stmt.body)

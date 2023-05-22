@@ -7,16 +7,15 @@ import lexer.LiteralValue
 import lexer.Token
 import lexer.TokenType
 
-fun intepret(declarations: List<Declaration?>, env: Environment = mutableMapOf()) {
-    val newVars = VariablesMap()
+fun intepret(declarations: List<Declaration>, env: Environment = mutableMapOf()) {
+    val newVars = VariablesMap(env)
     try {
         declarations.forEach { decl ->
-            when (decl) {
+            when(decl) {
                 is VarDeclaration -> {
                     newVars.checkFor(decl.name.lexeme)
                     evalDeclaration(decl, env)
                 }
-                null -> {}
                 else -> evalDeclaration(decl, env)
             }
         }
@@ -29,10 +28,7 @@ private fun evalDeclaration(decl: Declaration, env: Environment) = when(decl) {
     is Statement -> evalStatement(decl, env)
     is VarDeclaration -> {
         env.put(decl.name.lexeme,
-            when(decl.init) {
-                null -> null
-                else -> evalExpression(decl.init, env)
-            }
+            decl.init?. let { evalExpression(it, env) }
         )
     }
 }
@@ -95,14 +91,11 @@ private fun evalExpression(expr: Expression, env: Environment) : LiteralValue {
             when (expr.operator.type) {
                 TokenType.MINUS -> {
                     checkTypeOperands<Double>(expr.operator, right)
-
                     -(right as Double)
                 }
-
                 TokenType.BANG -> {
                     !(isTruthy(right))
                 }
-
                 else -> throw RuntimeError(expr.operator, "Unexpected operand")
             }
         }
