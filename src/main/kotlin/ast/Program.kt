@@ -17,6 +17,8 @@ class Literal(val value: LiteralValue?) : Expression
 class Unary(val operator: Token, val right: Expression) : Expression
 class Variable(val name: Token) : Expression
 class Assignment(val name: Token, val value: Expression) : Expression
+class Call(val callee: Expression, val paren: Token, val args: List<Expression>):
+    Expression
 
 // Print statement
 class Print(val expr: Expression) : Statement
@@ -29,3 +31,6 @@ class While(val cond: Expression, val body: Statement) : Statement
 
 // Var declaration
 class VarDeclaration(val name: Token, val init: Expression?) : Declaration
+
+class FunDeclaration(val name: Token, val params: List<Token>, val body: Block):
+        Declaration

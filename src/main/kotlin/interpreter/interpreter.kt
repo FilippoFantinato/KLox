@@ -3,6 +3,9 @@ package interpreter
 import ast.*
 import exceptions.Errors
 import exceptions.RuntimeError
+import interpreter.callable.LoxCallable
+import interpreter.callable.LoxFunction
+import interpreter.callable.arity
 import lexer.LiteralValue
 import lexer.Token
 import lexer.TokenType
@@ -31,6 +34,10 @@ private fun evalDeclaration(decl: Declaration, env: Environment) = when(decl) {
             decl.init?. let { evalExpression(it, env) }
         )
     }
+    is FunDeclaration -> {
+        val f = LoxFunction(decl)
+        assign(env, decl.name, f)
+    }
 }
 
 private fun evalStatement(stmt: Statement, env: Environment) {
@@ -42,23 +49,7 @@ private fun evalStatement(stmt: Statement, env: Environment) {
         is Expression -> {
             evalExpression(stmt, env)
         }
-        is Block -> {
-            val newEnv = env.toMutableMap()
-            val newVars = VariablesMap()
-
-            stmt.declarations.forEach { decl: Declaration ->
-                evalDeclaration(decl, newEnv)
-                when(decl) {
-                    is VarDeclaration ->
-                        newVars.checkFor(decl.name.lexeme)
-                    else -> newEnv.forEach { (k, v) ->
-                        if(!newVars.getOrDefault(k, false)) {
-                            env[k] = v
-                        }
-                    }
-                }
-            }
-        }
+        is Block -> evalBlock(stmt, env)
         is IfThenElse -> {
             when(isTruthy(stmt.cond)) {
                 true -> evalStatement(stmt.thenBranch, env)
@@ -74,6 +65,29 @@ private fun evalStatement(stmt: Statement, env: Environment) {
     }
 }
 
+private fun evalBlock(
+    b: Block,
+    env: Environment,
+    bindedVars: Environment = mutableMapOf()
+)
+{
+    val newEnv: Environment = (env.toMutableMap() + bindedVars) as Environment
+    val newVars = VariablesMap(bindedVars)
+
+    b.declarations.forEach { decl: Declaration ->
+        evalDeclaration(decl, newEnv)
+        when(decl) {
+            is VarDeclaration ->
+                newVars.checkFor(decl.name.lexeme)
+            else -> newEnv.forEach { (k, v) ->
+                if(!newVars.getOrDefault(k, false)) {
+                    env[k] = v
+                }
+            }
+        }
+    }
+}
+
 private fun evalExpression(expr: Expression, env: Environment) : LiteralValue {
     return when (expr) {
         is Literal -> expr.value!!
@@ -83,6 +97,25 @@ private fun evalExpression(expr: Expression, env: Environment) : LiteralValue {
             val value = evalExpression(expr.value, env)
             assign(env, expr.name, value)
             value
+        }
+        is Call -> {
+            val callee = evalExpression(expr.callee, env)
+
+            if(callee !is LoxCallable) {
+                throw RuntimeError(expr.paren,
+                    "Can only call functions and classes")
+            }
+
+            val args = expr.args.map { arg ->
+                evalExpression(arg, env)
+            }
+
+            if(args.size != arity(callee)) {
+                throw RuntimeError(expr.paren,
+                    "Expected ${arity(callee)} arguments but got ${args.size}.")
+            }
+
+            call(callee, env, args)
         }
 
         is Unary -> {
@@ -174,6 +207,24 @@ private fun evalExpression(expr: Expression, env: Environment) : LiteralValue {
         }
     }
 }
+
+
+fun call(c: LoxCallable, env: Environment, args: List<LiteralValue>) {
+    return when(c) {
+        is LoxFunction -> {
+            val params = c.decl.params
+            val bindedVars = env.toMutableMap()
+            (params.zip(args)).forEach { (param, arg) ->
+                bindedVars.put(
+                    param.lexeme,
+                    arg
+                )
+            }
+            evalBlock(c.decl.body, env, bindedVars)
+        }
+    }
+}
+
 
 fun assign(env: Environment, name: Token, value: LiteralValue) {
     if(env.containsKey(name.lexeme))
