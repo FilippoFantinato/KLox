@@ -1,5 +1,5 @@
 import ast.prettyProgram
-import interpreter.Environment
+import interpreter.environment.Environment
 import interpreter.intepret
 import lexer.Scanner
 import lexer.Token

@@ -1,6 +1,5 @@
-package interpreter
+package interpreter.environment
 
-import exceptions.RuntimeError
 import exceptions.VariableAlreadyDeclared
 
 class VariablesMap() : HashMap<String, Boolean>(mutableMapOf())

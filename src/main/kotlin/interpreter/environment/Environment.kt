@@ -1,4 +1,4 @@
-package interpreter
+package interpreter.environment
 
 import lexer.LiteralValue
 

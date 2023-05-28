@@ -28,6 +28,7 @@ class Block(val declarations: List<Declaration>) : Statement
 
 class IfThenElse(val cond: Expression, val thenBranch: Statement, val elseBranch: Statement?) : Statement
 class While(val cond: Expression, val body: Statement) : Statement
+class Return(val keyword: Token, val value: Expression?) : Statement
 
 // Var declaration
 class VarDeclaration(val name: Token, val init: Expression?) : Declaration

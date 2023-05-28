@@ -1,11 +1,7 @@
-var a = 4;
-
-for(var a = 1; a <= 10 ; )
+fun fat(n, acc)
 {
-    print a;
-    a = a + 1;
-    var a = 2;
-    a = a + 10;
+    print acc;
 }
 
-print a;
+var res = fat(5, 1);
+print res;
