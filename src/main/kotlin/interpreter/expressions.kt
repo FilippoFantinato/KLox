@@ -137,7 +137,7 @@ fun call(c: LoxCallable, env: Environment, args: List<LiteralValue>) : LiteralVa
     return when(c) {
         is LoxFunction -> {
             val params = c.decl.params
-            val bindedVars = env.toMutableMap()
+            val bindedVars = c.env
             (params.zip(args)).forEach { (param, arg) ->
                 bindedVars[param.lexeme] = arg
             }
@@ -150,7 +150,6 @@ fun call(c: LoxCallable, env: Environment, args: List<LiteralValue>) : LiteralVa
         }
     }
 }
-
 
 fun assign(env: Environment, name: Token, value: LiteralValue) {
     if(env.containsKey(name.lexeme))

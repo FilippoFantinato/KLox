@@ -1,7 +1,6 @@
 package interpreter
 
 import ast.*
-import exceptions.RuntimeError
 import interpreter.callable.LoxFunction
 import interpreter.environment.Environment
 
@@ -16,7 +15,7 @@ internal fun evalDeclaration(decl: Declaration, env: Environment) {
         }
 
         is FunDeclaration -> {
-            val f = LoxFunction(decl)
+            val f = LoxFunction(decl, env.toMutableMap())
             env[decl.name.lexeme] = f
         }
     }

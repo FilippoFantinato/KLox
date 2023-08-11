@@ -1,10 +1,8 @@
 package interpreter
 
 import ast.*
-import exceptions.RuntimeError
 import interpreter.environment.Environment
 import interpreter.environment.VariablesMap
-import lexer.LiteralValue
 
 internal fun evalStatement(stmt: Statement, env: Environment) {
     when(stmt) {
@@ -34,11 +32,9 @@ internal fun evalStatement(stmt: Statement, env: Environment) {
     }
 }
 
-internal fun evalBlock(
-    b: Block,
-    env: Environment,
-    bindedVars: Environment = mutableMapOf()
-)
+internal fun evalBlock(b: Block,
+                       env: Environment,
+                       bindedVars: Environment = mutableMapOf())
 {
     val newEnv: Environment = (env.toMutableMap() + bindedVars) as Environment
     val newVars = VariablesMap(bindedVars)

@@ -1,10 +1,11 @@
 package interpreter.callable
 
 import ast.FunDeclaration
+import interpreter.environment.Environment
 
 sealed interface LoxCallable
 
-class LoxFunction(val decl: FunDeclaration) : LoxCallable
+class LoxFunction(val decl: FunDeclaration, val env: Environment) : LoxCallable
 
 
 fun arity(c: LoxCallable) : Int = when(c) {

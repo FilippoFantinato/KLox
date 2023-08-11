@@ -1,7 +1,11 @@
-fun fat(n, acc)
+var a = "global";
 {
-    print acc;
-}
+  fun showA() {
+    print a;
+  }
 
-var res = fat(5, 1);
-print res;
+  showA();
+  var a = "block";
+  showA();
+  print a;
+}
