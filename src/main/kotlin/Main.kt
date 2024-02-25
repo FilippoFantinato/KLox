@@ -1,19 +1,22 @@
-import ast.prettyAST
-import lexer.Scanner
-import lexer.Token
-import parser.Parser
+import arrow.core.Either
+import lexer.LiteralValue
+import lexer.lex
 import java.io.File
 
+typealias Environment = MutableMap<String, LiteralValue?>
+
+
 fun runREPL() {
+    val env: Environment = mutableMapOf()
     while(true)
     {
         print("> ")
         val input = readln()
-        run(input)
+        run(input, env)
     }
 }
 
-fun runFile(filename: String){
+fun runFile(filename: String) {
     run(File(filename).readText())
 }
 
@@ -21,22 +24,25 @@ fun usage() {
     print("Usage: ")
 }
 
-fun run(source: String) {
-    val scanner = Scanner(source)
-    val tokens: MutableList<Token> = scanner.scanTokens() ?: return
+fun run(source: String, env: Environment = mutableMapOf()) {
+    val tokens = lex(source)
+    when(tokens)
+    {
+        is Either.Right -> print(tokens.value)
+        is Either.Left -> print(tokens.value)
+    }
 
-    tokens.forEach { token -> println(token) }
-
-    val parser = Parser(tokens)
-    val expression = parser.parse() ?: return
-
-    println(prettyAST(expression))
+//    val parser = Parser(tokens)
+//    val statements = parser.parse()
+//
+//    println(prettyProgram(statements))
+//
+//    interpret(statements, env)
 }
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) =
     when(args.size){
         0 -> runREPL()
         1 -> runFile(args[0])
         else -> usage()
     }
-}
