@@ -1,9 +1,6 @@
-import ast.prettyProgram
+import arrow.core.Either
 import interpreter.environment.Environment
-import interpreter.intepret
-import lexer.Scanner
-import lexer.Token
-import parser.Parser
+import lexer.lex
 import java.io.File
 
 fun runREPL() {
@@ -25,21 +22,24 @@ fun usage() {
 }
 
 fun run(source: String, env: Environment = mutableMapOf()) {
-    val scanner = Scanner(source)
-    val tokens: MutableList<Token> = scanner.scanTokens() ?: return
+    val tokens = lex(source)
+    when(tokens)
+    {
+        is Either.Right -> print(tokens.value)
+        is Either.Left -> print(tokens.value)
+    }
 
-    val parser = Parser(tokens)
-    val statements = parser.parse()
-
-    println(prettyProgram(statements))
-
-    intepret(statements, env)
+//    val parser = Parser(tokens)
+//    val statements = parser.parse()
+//
+//    println(prettyProgram(statements))
+//
+//    interpret(statements, env)
 }
 
-fun main(args: Array<String>) {
+fun main(args: Array<String>) =
     when(args.size){
         0 -> runREPL()
         1 -> runFile(args[0])
         else -> usage()
     }
-}

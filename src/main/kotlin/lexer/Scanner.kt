@@ -1,163 +1,208 @@
 package lexer
 
 import arrow.core.Either
-import arrow.core.left
-import arrow.core.raise.either
-import exceptions.Errors
-import java.util.LinkedList
+import arrow.core.Either.*
+import exceptions.LexerError
+import exceptions.LexerError.*
 
-class Scanner(private val source: String) {
-    private val tokens: MutableList<Token> = LinkedList()
-    private var start: Int = 0
-    private var current: Int = 0
-    private var line: Int = 1
+typealias Tokens = List<Token>
 
-    private var keywords = mapOf(
-        "and" to TokenType.AND,
-        "class" to TokenType.CLASS,
-        "else" to TokenType.ELSE,
-        "false" to TokenType.FALSE,
-        "fun" to TokenType.FUN,
-        "for" to TokenType.FOR,
-        "if" to TokenType.IF,
-        "nil" to TokenType.NIL,
-        "or" to TokenType.OR,
-        "print" to TokenType.PRINT,
-        "return" to TokenType.RETURN,
-        "super" to TokenType.SUPER,
-        "this" to TokenType.THIS,
-        "true" to TokenType.TRUE,
-        "var" to TokenType.VAR,
-        "while" to TokenType.WHILE
-    )
+fun lex(source: String) =
+    lex(source, 0, 0, 1, listOf())
 
-    fun scanTokens(): MutableList<Token>? {
-        var notError = true
-        while (notError && !isAtEnd()) {
-            start = current
-            notError = scanToken()
-        }
+private fun lex(source: String, start: Int, current: Int, line: Int, tokens: Tokens) : Either<LexerError, Tokens>
+{
+    if(isAtEnd(source, current)) return Right(tokens + Token(TokenType.EOF, "", null, line))
 
-        if(!notError) return null
-
-        tokens.add(Token(TokenType.EOF, "", null, line))
-
-        return tokens
-    }
-
-    private fun isAtEnd(): Boolean {
-        return current >= source.length
-    }
-
-    private fun scanToken(): Boolean = when(val c = advance()) {
-            '(' -> addToken(TokenType.LEFT_PAREN)
-            ')' -> addToken(TokenType.RIGHT_PAREN)
-            '{' -> addToken(TokenType.LEFT_BRACE)
-            '}' -> addToken(TokenType.RIGHT_BRACE)
-            ',' -> addToken(TokenType.COMMA)
-            '.' -> addToken(TokenType.DOT)
-            '-' -> addToken(TokenType.MINUS)
-            '+' -> addToken(TokenType.PLUS)
-            ';' -> addToken(TokenType.SEMICOLON)
-            '*' -> addToken(TokenType.STAR)
-            '!' -> addToken(if(match('=')) TokenType.BANG_EQUAL else TokenType.BANG)
-            '=' -> addToken(if(match('=')) TokenType.EQUAL_EQUAL else TokenType.EQUAL)
-            '<' -> addToken(if(match('=')) TokenType.LESS_EQUAL else TokenType.LESS)
-            '>' -> addToken(if(match('=')) TokenType.GREATER_EQUAL else TokenType.GREATER)
-            '/' -> {
-                when {
-                    match('/') -> {
-                        while(peek() != '\n' && !isAtEnd()) advance()
-                        true
-                    }
-                    match('*') -> {
-                        while(!(peek() == '*' || peekNext() == '\\') && !isAtEnd()) advance()
-                        true
-                    }
-                    else -> addToken(TokenType.SLASH)
-                }
-            }
-            '"' -> string()
-            '\n' -> {
-                ++line
-                true
-            }
-            ' ', '\r', '\t'-> true
-            else -> {
-                when{
-                    c.isDigit() -> number()
-                    c.isLetter() -> identifier()
-                    else -> {
-                        Errors.error(line, "Unexpected character.")
-                        false
-                    }
-                }
-            }
-        }
-
-    private fun advance(): Char {
-        return source[current++]
-    }
-
-    private fun addToken(type: TokenType, literal: LiteralValue? = null): Boolean {
-        val text = source.substring(start, current)
-        tokens.add(Token(type, text, literal, line))
-        return true
-    }
-
-    private fun match(expected: Char): Boolean {
-        if (isAtEnd() || source[current] != expected) return false
-        ++current
-        return true
-    }
-
-    private fun peek(): Char {
-        if(isAtEnd()) return Char.MIN_VALUE
-        return source[current]
-    }
-
-    private fun peekNext(): Char {
-        if(current + 1 >= source.length) return Char.MIN_VALUE
-        return source[current + 1]
-    }
-
-    private fun string(): Boolean {
-        while(peek() != '"' && !isAtEnd()) {
-            if(peek() == '\n') line++
-            advance()
-        }
-
-        if(isAtEnd()) {
-            Errors.error(line, "Unterminated string.")
-            return false
-        }
-
-        advance()
-
-        val value = source.substring(start + 1, current - 1)
-        return addToken(TokenType.STRING, value)
-    }
-
-    private fun number(): Boolean {
-        while(peek().isDigit()) advance()
-
-        if(peek() == '.' && peekNext().isDigit()) {
-            advance()
-
-            while(peek().isDigit()) advance()
-        }
-
-        return addToken(
-            TokenType.NUMBER,
-            source.substring(start, current).toDouble()
+    val current = current + 1
+    return when(val c = source[current-1])
+    {
+        '(' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.LEFT_PAREN, source, start, current, line)
         )
-    }
+        ')' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.RIGHT_PAREN, source, start, current, line)
+        )
+        '{' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.LEFT_BRACE, source, start, current, line)
+        )
+        '}' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.RIGHT_BRACE, source, start, current, line)
+        )
+        ',' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.COMMA, source, start, current, line)
+        )
+        '.' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.DOT, source, start, current, line)
+        )
+        '-' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.MINUS, source, start, current, line)
+        )
+        '+' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.PLUS, source, start, current, line)
+        )
+        ';' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.SEMICOLON, source, start, current, line)
+        )
+        '*' -> lex(source, current, current, line,
+            tokens + addToken(TokenType.STAR, source, start, current, line)
+        )
+        '!' -> {
+            if(match('=', source, current))
+            {
+                val current = current + 1
+                val t = addToken(TokenType.BANG_EQUAL, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+            else
+            {
+                val t = addToken(TokenType.BANG, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+        }
 
-    private fun identifier(): Boolean {
-        while(peek().isLetterOrDigit()) advance()
+        '=' -> {
+            if(match('=', source, current))
+            {
+                val current = current + 1
+                val t = addToken(TokenType.EQUAL_EQUAL, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+            else
+            {
+                val t = addToken(TokenType.EQUAL, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+        }
+        '<' -> {
+            if(match('=', source, current))
+            {
+                val current = current + 1
+                val t = addToken(TokenType.LESS_EQUAL, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+            else
+            {
+                val t = addToken(TokenType.LESS, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+        }
+        '>' -> {
+            if(match('=', source, current))
+            {
+                val current = current + 1
+                val t = addToken(TokenType.GREATER_EQUAL, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+            else
+            {
+                val t = addToken(TokenType.GREATER, source, start, current, line)
+                lex(source, current, current, line, tokens + t)
+            }
+        }
+        '/' -> {
+            when {
+                match('/', source, current) -> {
+                    val current = inlineComment(source, current + 1)
+                    lex(source, current, current, line+1, tokens)
+                }
 
-        val text = source.substring(start, current)
-        val type = keywords[text] ?: TokenType.IDENTIFIER
-        return addToken(type)
+                match('*', source, current) -> {
+                    val (current, line) = multiBlockComment(source, current, line)
+                    lex(source, current, current, line, tokens)
+                }
+                else -> {
+                    val t = addToken(TokenType.SLASH, source, start, current, line)
+                    lex(source, current, current, line, tokens + t)
+                }
+            }
+        }
+        '"' -> {
+            when(val s = string(source, start, current, line)) {
+                is Left -> Left(s.value)
+                is Right -> {
+                    val (current, line) = s.value
+                    val t = addToken(TokenType.STRING, source, start, current, line, source.substring(start + 1, current - 1))
+                    lex(source, current, current, line, tokens + t)
+                }
+            }
+        }
+        '\n' -> lex(source, current, current, line + 1, tokens)
+        ' ', '\r', '\t'-> lex(source, current, current, line, tokens)
+        else -> {
+            when{
+                c.isDigit() -> {
+                    when(val s = number(source, start, current, line)) {
+                        is Left -> Left(s.value)
+                        is Right -> {
+                            val current = s.value
+                            val t = addToken(TokenType.NUMBER, source, start, current, line, source.substring(start, current).toDouble())
+                            lex(source, current, current, line, tokens + t)
+                        }
+                    }
+                }
+                c.isLetter() -> {
+                    val current = identifier(source, current)
+                    val text = source.substring(start, current)
+                    val type = keywords[text] ?: TokenType.IDENTIFIER
+                    val t = addToken(type, source, start, current, line)
+
+                    lex(source, current, current, line, tokens + t)
+                }
+                else -> {
+                    Left(UnknownCharacter(line, source.substring(start, current)))
+                }
+            }
+        }
     }
 }
+
+private fun addToken(type: TokenType, source: String, start: Int, current: Int, line: Int, literal: LiteralValue? = null): Token =
+    Token(type, source.substring(start, current), literal, line)
+
+private fun isAtEnd(source: String, current: Int) =
+    current >= source.length
+
+private fun match(expected: Char, source: String, current: Int) =
+    !isAtEnd(source, current) && source[current] == expected
+
+private fun peek(source: String, current: Int): Char =
+    if(isAtEnd(source, current)) Char.MIN_VALUE else source[current]
+
+private fun inlineComment(source: String, current: Int) : Int =
+    when {
+        isAtEnd(source, current) || source[current] == '\n' -> current + 1
+        else -> inlineComment(source, current + 1)
+    }
+
+private fun multiBlockComment(source: String, current: Int, line: Int) : Pair<Int, Int> =
+    when {
+        isAtEnd(source, current) ||
+        (source[current] == '*' && (isAtEnd(source, current+1) || source[current + 1] == '/')) ->
+            Pair(current + 2, line)
+        else -> multiBlockComment(source, current + 1, if(source[current] == '\n') line + 1 else line)
+    }
+
+private fun string(source: String, start: Int, current: Int, line: Int): Either<LexerError, Pair<Int, Int>> =
+    when {
+        !isAtEnd(source, current) && source[current] == '"' -> Right(Pair(current + 1, line))
+        !isAtEnd(source, current) && source[current] != '"' ->
+            string(source, start, current + 1, if(source[current]=='\n') line + 1 else line)
+        else -> Left(UnterminatedString(line, source.substring(start, current)))
+    }
+
+private fun number(source: String, start: Int, current: Int, line: Int) : Either<LexerError, Int> =
+        when(peek(source, current)) {
+            in '0'..'9' -> number(source, start, current, line)
+            '.' -> when {
+                peek(source, current + 1) in '0'..'9' -> number(source, start, current + 2, line)
+                else -> Left(UnterminatedNumber(line, source.substring(start, current + 1)))
+            }
+            else -> Right(current)
+        }
+
+private fun identifier(source: String, current: Int): Int =
+    when {
+        peek(source, current).isLetterOrDigit() -> identifier(source, current + 1)
+        else -> current
+    }

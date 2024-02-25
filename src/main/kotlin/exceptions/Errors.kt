@@ -18,7 +18,7 @@ class Errors {
         }
 
         private fun report(line: Int, where: String, message: String) {
-            println("[lind: $line] Error $where: $message]")
+            println("[line: $line] Error $where: $message]")
         }
     }
 }
