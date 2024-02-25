@@ -4,5 +4,5 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-rootProject.name = "Lox"
+rootProject.name = "KLox"
 
