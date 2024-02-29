@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     kotlin("jvm") version "1.8.20"
+    id("org.jetbrains.kotlinx.kover") version "0.7.6"
     application
 }
 
@@ -32,4 +33,15 @@ application {
 }
 kotlin {
     jvmToolchain(11)
+}
+
+koverReport {
+    verify {
+        rule {
+            isEnabled = true
+            bound {
+                minValue = 80 // Minimum coverage percentage
+            }
+        }
+    }
 }
