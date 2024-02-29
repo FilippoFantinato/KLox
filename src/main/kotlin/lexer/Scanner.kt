@@ -2,8 +2,8 @@ package lexer
 
 import arrow.core.Either
 import arrow.core.Either.*
-import exceptions.LexerError
-import exceptions.LexerError.*
+import errors.LexerError
+import errors.LexerError.*
 
 typealias Tokens = List<Token>
 

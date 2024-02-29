@@ -2,7 +2,7 @@ package lexer
 
 import arrow.core.Either.Left
 import arrow.core.Either.Right
-import exceptions.LexerError
+import errors.LexerError
 import org.junit.jupiter.api.Assertions.*
 import kotlin.test.Test
 
